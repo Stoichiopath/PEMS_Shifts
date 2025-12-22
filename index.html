@@ -1,0 +1,698 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pender EMS & Fire Shift Calendar (Bands + Print)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    /************************************************************
+     * Theme
+     ************************************************************/
+    :root{
+      --bg:#0f172a;
+      --card:#111827;
+      --text:#e5e7eb;
+      --muted:#9ca3af;
+      --accent:#22c55e;
+      --accent2:#60a5fa;
+      --grid:#1f2937;
+      --ems:#f59e0b;   /* amber */
+      --fire:#ef4444;  /* red */
+      --emsBandFill: rgba(245, 158, 11, 0.18);
+      --fireBandFill: rgba(239, 68, 68, 0.22);
+    }
+    body {
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+      line-height: 1.5;
+    }
+    header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--grid);
+      background: #0b1220;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 1.25rem;
+    }
+    .anchor-note {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--grid);
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .panel h2 {
+      margin-top: 0;
+      font-size: 1rem;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .search-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.75rem;
+      align-items: end;
+    }
+    label {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+    input[type="date"], select {
+      width: 100%;
+      padding: 0.6rem 0.7rem;
+      border: 1px solid var(--grid);
+      border-radius: 8px;
+      background: #0d1425;
+      color: var(--text);
+      outline: none;
+    }
+    button {
+      padding: 0.6rem 0.9rem;
+      border-radius: 8px;
+      border: 1px solid var(--grid);
+      background: #0d1425;
+      color: var(--text);
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--accent2); }
+    .result {
+      margin-top: 0.75rem;
+      background: #0c1322;
+      border: 1px dashed var(--grid);
+      border-radius: 8px;
+      padding: 0.75rem;
+    }
+    .result p { margin: 0.25rem 0; }
+    .result .tag {
+      display: inline-block;
+      margin-right: 0.4rem;
+      padding: 0.1rem 0.5rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      border: 1px solid var(--grid);
+    }
+    .tag.fire { color: var(--fire); border-color: var(--fire); }
+    .tag.ems  { color: var(--ems);  border-color: var(--ems);  }
+
+    /************************************************************
+     * Calendar (month view with week bands)
+     ************************************************************/
+    .cal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .cal-header h3 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+    .cal-nav {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .calendar {
+      border-radius: 10px;
+      overflow: hidden;
+      border: 1px solid var(--grid);
+      background: #0c1322;
+    }
+    .dow-row {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      padding: 6px;
+      background: #0c1322;
+      position: sticky;
+      top: calc(1rem + 48px);
+      z-index: 3;
+    }
+    .dow {
+      background: #0c1322;
+      padding: 0.5rem;
+      font-size: 0.8rem;
+      text-align: center;
+      color: var(--muted);
+      border-radius: 6px;
+      font-weight: 600;
+      border: 1px solid var(--grid);
+    }
+    .month-body {
+      padding: 6px;
+      background: #0c1322;
+    }
+    .week {
+      position: relative;
+      margin-bottom: 10px;
+    }
+    .week-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .day {
+      background: var(--card);
+      min-height: 110px;
+      padding: 0.5rem;
+      border-radius: 6px;
+      border: 1px solid var(--grid);
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+    .day.out { opacity: 0.45; }
+    .day .num {
+      font-weight: 700;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .line {
+      font-size: 0.87rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .badge {
+      display: inline-block;
+      min-width: 1.5rem;
+      text-align: center;
+      padding: 0.1rem 0.35rem;
+      border-radius: 6px;
+      font-weight: 700;
+      font-size: 0.8rem;
+      color: #0a0f1c;
+    }
+    .badge.fire { background: var(--fire); }
+    .badge.ems { background: var(--ems); }
+
+    /* Bands layer under each week row (two tracks: Fire & EMS) */
+    .bands {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+      margin-top: 6px;
+    }
+    .band {
+      height: 14px;
+      border-radius: 10px;
+      align-self: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      border: 1px solid;
+      box-shadow: 0 0 0.5px rgba(0,0,0,0.2);
+    }
+    .band.fire {
+      background: var(--fireBandFill);
+      border-color: var(--fire);
+      color: var(--fire);
+    }
+    .band.ems {
+      background: var(--emsBandFill);
+      border-color: var(--ems);
+      color: var(--ems);
+      height: 10px; /* thinner EMS band */
+    }
+    .band-label {
+      padding: 0 6px;
+    }
+
+    .footnote {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-top: 0.75rem;
+    }
+
+    /************************************************************
+     * Mobile tweaks
+     ************************************************************/
+    @media (max-width: 860px) {
+      .controls { grid-template-columns: 1fr; }
+      .search-row { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 640px) {
+      .day { min-height: 90px; }
+      .badge { font-size: 0.75rem; }
+      .line { font-size: 0.8rem; }
+      .band { font-size: 0.7rem; }
+      .dow { font-size: 0.75rem; padding: 0.4rem; }
+      .cal-header h3 { font-size: 1rem; }
+    }
+
+    /************************************************************
+     * Print styles (clean, light, single-month)
+     ************************************************************/
+    .print-only-title { display: none; }
+    @media print {
+      :root {
+        --text:#111;
+        --muted:#555;
+        --grid:#ddd;
+        --ems:#b36b00;
+        --fire:#cc0000;
+        --emsBandFill: #ffe8b3;
+        --fireBandFill: #ffcccc;
+      }
+      body {
+        background: #fff !important;
+        color: var(--text) !important;
+      }
+      header {
+        background: #fff !important;
+        border: none !important;
+        padding-bottom: 0.5rem;
+      }
+      .anchor-note { color: var(--muted) !important; }
+      .panel {
+        background: #fff !important;
+        border: none !important;
+        padding: 0 !important;
+      }
+      .controls, .footnote { display: none !important; }
+      .calendar {
+        border: none !important;
+        background: #fff !important;
+      }
+      .dow-row {
+        background: #fff !important;
+        position: static !important;
+      }
+      .dow {
+        background: #fff !important;
+        border-color: var(--grid) !important;
+      }
+      .month-body {
+        background: #fff !important;
+      }
+      .day {
+        background: #fff !important;
+        border: 1px solid var(--grid) !important;
+      }
+      .badge.fire { background: var(--fire) !important; color: #fff !important; }
+      .badge.ems  { background: var(--ems)  !important; color: #fff !important; }
+      .band.fire {
+        background: var(--fireBandFill) !important; border-color: var(--fire) !important; color: var(--fire) !important;
+      }
+      .band.ems {
+        background: var(--emsBandFill) !important; border-color: var(--ems) !important; color: var(--ems) !important;
+      }
+      .print-only-title {
+        display: block;
+        font-size: 1rem;
+        color: var(--muted);
+        margin: 0 0 0.5rem 0;
+      }
+      .cal-header h3 {
+        font-size: 1.4rem !important;
+        margin-bottom: 0.25rem !important;
+      }
+      @page {
+        size: auto;
+        margin: 12mm;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>EMS & Fire Shift Calendar</h1>
+    <div class="anchor-note">
+      Anchor: <strong>Jan 3, 2026 @ 08:00</strong> — Fire <strong>A</strong> & EMS <strong>D</strong> start.
+      (Edit in code if your agency changes the baseline.)
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="controls">
+      <!-- Search Panel -->
+      <div class="panel" id="searchPanel">
+        <h2>Find Shifts for a Day</h2>
+        <div class="search-row">
+          <div>
+            <label for="searchDate">Pick a date</label>
+            <input type="date" id="searchDate" />
+          </div>
+          <div>
+            <label for="evalHour">Evaluate at (local time)</label>
+            <select id="evalHour">
+              <option value="8" selected>08:00 (Shift start)</option>
+              <option value="0">00:00</option>
+              <option value="12">12:00</option>
+              <option value="20">20:00</option>
+            </select>
+          </div>
+          <div>
+            <button id="btnSearch">Check Shifts</button>
+          </div>
+        </div>
+        <div class="result" id="searchResult">
+          <p><em>Pick a date above and click <strong>Check Shifts</strong>.</em></p>
+        </div>
+      </div>
+
+      <!-- Calendar Panel -->
+      <div class="panel">
+        <div class="cal-header">
+          <h3 id="monthTitle">Month</h3>
+          <div class="cal-nav">
+            <button id="prevMonth">◀ Prev</button>
+            <button id="todayMonth">Today</button>
+            <button id="nextMonth">Next ▶</button>
+            <button id="printMonth">🖨 Print Month</button>
+          </div>
+        </div>
+
+        <div class="calendar">
+          <div class="dow-row">
+            <div class="dow">Sun</div>
+            <div class="dow">Mon</div>
+            <div class="dow">Tue</div>
+            <div class="dow">Wed</div>
+            <div class="dow">Thu</div>
+            <div class="dow">Fri</div>
+            <div class="dow">Sat</div>
+          </div>
+          <div class="month-body" id="monthBody">
+            <!-- Weeks are rendered here -->
+          </div>
+        </div>
+
+        <div class="print-only-title">EMS & Fire Shift Calendar</div>
+
+        <div class="footnote">
+          Calendar shows the shifts at <strong>08:00</strong> local time for each day.
+          Use the search panel to evaluate other times if needed.
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>How It Works</h2>
+      <p>
+        EMS rotates <strong>A→B→C→D</strong> with <strong>24h on / 72h off</strong> and starts a new shift every 24 hours.
+        Fire rotates <strong>A→B→C</strong> with <strong>48h on / 96h off</strong> and starts a new shift every 48 hours.
+        Bands show contiguous active windows across a week: Fire bands span 2 days, EMS bands span 1 day.
+      </p>
+      <p>
+        To change the anchor (e.g., if your agency updates the schedule), edit the constants
+        <code>ANCHOR</code> and the starting indices inside the script.
+      </p>
+    </div>
+  </div>
+
+  <script>
+  document.addEventListener('DOMContentLoaded', () => {
+    // ==== Guard: required elements must exist ====
+    const monthBodyEl  = document.getElementById('monthBody');
+    const monthTitleEl = document.getElementById('monthTitle');
+    const prevBtn = document.getElementById('prevMonth');
+    const nextBtn = document.getElementById('nextMonth');
+    const todayBtn = document.getElementById('todayMonth');
+    const printBtn = document.getElementById('printMonth');
+    const searchDateEl = document.getElementById('searchDate');
+    const evalHourEl   = document.getElementById('evalHour');
+    const searchBtn    = document.getElementById('btnSearch');
+    const searchResult = document.getElementById('searchResult');
+
+    if (!monthBodyEl || !monthTitleEl || !prevBtn || !nextBtn || !todayBtn || !printBtn || !searchDateEl || !evalHourEl || !searchBtn || !searchResult) {
+      document.body.innerHTML = '<div style="padding:1rem;color:#fff">Error: required elements missing. Please re-copy the full HTML.</div>';
+      return;
+    }
+
+    // ==== Configuration ====
+    const ANCHOR = new Date(2026, 0, 3, 8, 0, 0); // Jan 3, 2026 at 08:00 LOCAL
+    const EMS_ORDER = ["A", "B", "C", "D"];
+    const EMS_ANCHOR_INDEX = 3;              // D shift at anchor
+    const EMS_START_STEP_HOURS = 24;         // new EMS shift every 24h
+    const EMS_SHIFT_LENGTH_HOURS = 24;       // EMS works 24h
+
+    const FIRE_ORDER = ["A", "B", "C"];
+    const FIRE_ANCHOR_INDEX = 0;             // A shift at anchor
+    const FIRE_START_STEP_HOURS = 48;        // new Fire shift every 48h
+    const FIRE_SHIFT_LENGTH_HOURS = 48;      // Fire works 48h
+
+    const HOUR_MS = 60 * 60 * 1000;
+    const mod = (n, m) => ((n % m) + m) % m;
+
+    function makeLocalDate(y, mIndex, d, h=8, min=0, s=0) { return new Date(y, mIndex, d, h, min, s); }
+    function fmtDateTime(dt) {
+      const optsDate = { year: 'numeric', month: 'short', day: 'numeric' };
+      const optsTime = { hour: '2-digit', minute: '2-digit' };
+      return `${dt.toLocaleDateString(undefined, optsDate)} ${dt.toLocaleTimeString(undefined, optsTime)}`;
+    }
+    function fmtOnlyDate(dt) {
+      const optsDate = { year: 'numeric', month: 'long', day: 'numeric' };
+      return dt.toLocaleDateString(undefined, optsDate);
+    }
+
+    function emsShiftAt(dateEval) {
+      const deltaMs = dateEval - ANCHOR;
+      const stepMs = EMS_START_STEP_HOURS * HOUR_MS;
+      const cycles = Math.floor(deltaMs / stepMs);
+      const idx = mod(EMS_ANCHOR_INDEX + cycles, EMS_ORDER.length);
+      const start = new Date(ANCHOR.getTime() + cycles * stepMs);
+      const end = new Date(start.getTime() + EMS_SHIFT_LENGTH_HOURS * HOUR_MS);
+      return { division: "EMS", shift: EMS_ORDER[idx], start, end };
+    }
+    function fireShiftAt(dateEval) {
+      const deltaMs = dateEval - ANCHOR;
+      const stepMs = FIRE_START_STEP_HOURS * HOUR_MS;
+      const cycles = Math.floor(deltaMs / stepMs);
+      const idx = mod(FIRE_ANCHOR_INDEX + cycles, FIRE_ORDER.length);
+      const start = new Date(ANCHOR.getTime() + cycles * stepMs);
+      const end = new Date(start.getTime() + FIRE_SHIFT_LENGTH_HOURS * HOUR_MS);
+      return { division: "Fire", shift: FIRE_ORDER[idx], start, end };
+    }
+    function shiftsAt(dateEval) { return { fire: fireShiftAt(dateEval), ems: emsShiftAt(dateEval) }; }
+
+    function getMonthMatrix(year, monthIndex) {
+      // 6 rows of weeks; each week has 7 days; include leading/trailing days as needed
+      const firstOfMonth = new Date(year, monthIndex, 1, 8, 0, 0);
+      const startGrid = new Date(firstOfMonth);
+      startGrid.setDate(startGrid.getDate() - startGrid.getDay()); // back to Sunday
+      const weeks = [];
+      let cursor = new Date(startGrid);
+      for (let w = 0; w < 6; w++) {
+        const week = [];
+        for (let d = 0; d < 7; d++) {
+          const cellDate = new Date(cursor);
+          week.push({ date: cellDate, out: cellDate.getMonth() !== monthIndex });
+          cursor.setDate(cursor.getDate() + 1);
+        }
+        weeks.push(week);
+      }
+      return weeks;
+    }
+
+    let currentMonth = (new Date()).getMonth();
+    let currentYear  = (new Date()).getFullYear();
+
+    function renderCalendar(year, monthIndex) {
+      monthTitleEl.textContent = new Date(year, monthIndex, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+      monthBodyEl.innerHTML = '';
+      const weeks = getMonthMatrix(year, monthIndex);
+
+      weeks.forEach(week => {
+        const weekEl = document.createElement('div');
+        weekEl.className = 'week';
+
+        const weekGrid = document.createElement('div');
+        weekGrid.className = 'week-grid';
+
+        week.forEach(({date, out}) => {
+          const y = date.getFullYear(), m = date.getMonth(), d = date.getDate();
+          const evalDt = makeLocalDate(y, m, d, 8);
+          const { fire, ems } = shiftsAt(evalDt);
+
+          const cell = document.createElement('div');
+          cell.className = 'day' + (out ? ' out' : '');
+          const num = document.createElement('div');
+          num.className = 'num';
+          num.textContent = d;
+          cell.appendChild(num);
+
+          const lineFire = document.createElement('div');
+          lineFire.className = 'line';
+          const bFire = document.createElement('span');
+          bFire.className = 'badge fire';
+          bFire.textContent = 'Fire';
+          const tFire = document.createElement('span');
+          tFire.textContent = `Shift ${fire.shift}`;
+          lineFire.append(bFire, tFire);
+          cell.appendChild(lineFire);
+
+          const lineEMS = document.createElement('div');
+          lineEMS.className = 'line';
+          const bEMS = document.createElement('span');
+          bEMS.className = 'badge ems';
+          bEMS.textContent = 'EMS';
+          const tEMS = document.createElement('span');
+          tEMS.textContent = `Shift ${ems.shift}`;
+          lineEMS.append(bEMS, tEMS);
+          cell.appendChild(lineEMS);
+
+          // Tooltip-like title for exact windows
+          cell.title =
+            `Fire ${fire.shift}: ${fmtDateTime(fire.start)} → ${fmtDateTime(fire.end)}\n` +
+            `EMS ${ems.shift}: ${fmtDateTime(ems.start)} → ${fmtDateTime(ems.end)}`;
+
+          weekGrid.appendChild(cell);
+        });
+
+        weekEl.appendChild(weekGrid);
+
+        // Bands layer (Fire top, EMS under)
+        const bandsEl = document.createElement('div');
+        bandsEl.className = 'bands';
+        addBandsForDivision(bandsEl, week, 'fire');
+        addBandsForDivision(bandsEl, week, 'ems');
+
+        weekEl.appendChild(bandsEl);
+        monthBodyEl.appendChild(weekEl);
+      });
+    }
+
+    function addBandsForDivision(bandsEl, week, division) {
+      const isFire = division === 'fire';
+      const className = 'band ' + (isFire ? 'fire' : 'ems');
+
+      // Build segments across the week based on contiguous shift labels at 08:00
+      let segs = [];
+      let i = 0;
+      while (i < 7) {
+        const { date: dt } = week[i];
+        const y = dt.getFullYear(), m = dt.getMonth(), d = dt.getDate();
+        const evalDt = makeLocalDate(y, m, d, 8);
+        const info = isFire ? fireShiftAt(evalDt) : emsShiftAt(evalDt);
+        const label = info.shift;
+
+        let len = 1;
+        while (i + len < 7) {
+          const dtNext = week[i + len].date;
+          const evalNext = makeLocalDate(dtNext.getFullYear(), dtNext.getMonth(), dtNext.getDate(), 8);
+          const labelNext = (isFire ? fireShiftAt(evalNext) : emsShiftAt(evalNext)).shift;
+          if (labelNext !== label) break;
+          len++;
+          // Fire bands are naturally max 2 days because of the 48h cadence
+          if (isFire && len >= 2) break;
+        }
+
+        // Segment window (first day 08:00 to 08:00 + len days)
+        const startDt = evalDt;
+        const endDt = new Date(startDt.getTime() + len * 24 * HOUR_MS);
+
+        segs.push({ label, startCol: i + 1, length: len, startDt, endDt });
+        i += len;
+      }
+
+      segs.forEach(seg => {
+        const el = document.createElement('div');
+        el.className = className;
+        el.style.gridColumn = `${seg.startCol} / span ${seg.length}`;
+        el.title = `${isFire ? 'Fire' : 'EMS'} ${seg.label}: ${fmtDateTime(seg.startDt)} → ${fmtDateTime(seg.endDt)}`;
+        const lab = document.createElement('span'); lab.className = 'band-label';
+        lab.textContent = `${isFire ? 'Fire' : 'EMS'} ${seg.label}`;
+        el.appendChild(lab);
+        bandsEl.appendChild(el);
+      });
+    }
+
+    // ==== Navigation listeners ====
+    prevBtn.addEventListener('click', () => {
+      currentMonth--;
+      if (currentMonth < 0) { currentMonth = 11; currentYear--; }
+      renderCalendar(currentYear, currentMonth);
+    });
+    nextBtn.addEventListener('click', () => {
+      currentMonth++;
+      if (currentMonth > 11) { currentMonth = 0; currentYear++; }
+      renderCalendar(currentYear, currentMonth);
+    });
+    todayBtn.addEventListener('click', () => {
+      const now = new Date();
+      currentMonth = now.getMonth();
+      currentYear  = now.getFullYear();
+      renderCalendar(currentYear, currentMonth);
+    });
+
+    // ==== Print Month button ====
+    printBtn.addEventListener('click', () => {
+      // Ensure current month is displayed and then open print dialog
+      window.print();
+    });
+
+    // ==== Search functionality ====
+    (function initDefaults(){
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm   = String(today.getMonth() + 1).padStart(2, '0');
+      const dd   = String(today.getDate()).padStart(2, '0');
+      searchDateEl.value = `${yyyy}-${mm}-${dd}`;
+      currentMonth = today.getMonth();
+      currentYear  = today.getFullYear();
+      renderCalendar(currentYear, currentMonth);
+    })();
+
+    searchBtn.addEventListener('click', () => {
+      const dateStr = searchDateEl.value;
+      if (!dateStr) {
+        searchResult.innerHTML = `<p class="tag">Please select a date.</p>`;
+        return;
+      }
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const hour = Number(evalHourEl.value);
+      const evalDt = makeLocalDate(y, m - 1, d, hour);
+
+      const { fire, ems } = shiftsAt(evalDt);
+      const muted = getComputedStyle(document.documentElement).getPropertyValue('--muted') || '#9ca3af';
+
+      searchResult.innerHTML = `
+        <p><strong>${fmtOnlyDate(evalDt)}</strong> @ <strong>${String(hour).padStart(2,'0')}:00</strong> (local)</p>
+        <p><span class="tag fire">Fire</span> <strong>Shift ${fire.shift}</strong><br>
+           <span style="color:${muted}">
+             On window: ${fmtDateTime(fire.start)} → ${fmtDateTime(fire.end)}
+           </span>
+        </p>
+        <p><span class="tag ems">EMS</span> <strong>Shift ${ems.shift}</strong><br>
+           <span style="color:${muted}">
+             On window: ${fmtDateTime(ems.start)} → ${fmtDateTime(ems.end)}
+           </span>
+        </p>
+      `;
+    });
+  });
+  </script>
+</body>
+</html>
+
+
